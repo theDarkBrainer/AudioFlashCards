@@ -110,9 +110,9 @@ public class MusicService extends MediaBrowserServiceCompat {
 
             MediaMetadataCompat mediaData = new MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, data.getId())
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "Album")
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, data.getGerman())
-                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, data.getEnglish())
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, data.getEnglish())
+                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "")
+                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, data.getGerman())
                     .build();
 
             arrMediaItems.add(new MediaBrowserCompat.MediaItem(mediaData.getDescription(), MediaBrowserCompat.MediaItem.FLAG_PLAYABLE));
@@ -156,9 +156,9 @@ public class MusicService extends MediaBrowserServiceCompat {
 
             mPreparedMedia = new MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaId)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "")
+                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, data.getEnglish())
                     .putString(MediaMetadataCompat.METADATA_KEY_TITLE, data.getGerman())
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, data.getEnglish())
+                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, "")
                     .build();
 
             mSession.setMetadata(mPreparedMedia);
