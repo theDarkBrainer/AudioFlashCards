@@ -76,6 +76,9 @@ public class PlayerBox {
 
     private OnCompletionListener mOnCompletionListener;
 
+    private PlayerRunnable mPlayRunnable = new PlayerRunnable();
+    private Thread mPlayThread;
+
     public PlayerBox(Context context, PlayMode playMode) {
 
         mPlayMode = playMode;
@@ -88,7 +91,8 @@ public class PlayerBox {
                 public void onInit(int status) {
                     if (status != TextToSpeech.ERROR) {
                         Log.d("PlayerBox", "speakers ready");
-                        new Thread(mPlayRunnable).start();
+                        mPlayThread = new Thread(mPlayRunnable);
+                        mPlayThread.start();
                     } else {
                         //throw new Exception("TextToSpeak is unsupported");
                     }
@@ -110,6 +114,7 @@ public class PlayerBox {
     public void release() {
         Log.d("PlayerBox", "release");
         mPlayRunnable.setActive( false );
+        mPlayThread.interrupt();
     }
 
     PlayMode getPlayMode() {
@@ -236,7 +241,7 @@ public class PlayerBox {
                                         public void onCompleted() {
                                             Log.d("PlayerBox", "completed word: " + message.getEnglish());
 
-`                                            mOnCompletionListener.onCompleted();
+                                            mOnCompletionListener.onCompleted();
                                         }
                                     });
                                 } catch (InterruptedException e) {
@@ -254,8 +259,8 @@ public class PlayerBox {
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
+
+            Log.d("PlayerBox", "Thread STOPPED!");
         }
     }
-
-    private PlayerRunnable mPlayRunnable = new PlayerRunnable();
 }
