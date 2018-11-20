@@ -148,33 +148,34 @@ public class MainActivity extends AppCompatActivity {
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                builder.setTitle(R.string.select_play_mode)
-                        .setItems(R.array.play_modes, new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                PlayerBox.PlayMode playMode = PlayerBox.PlayMode.values()[which];
-                                if ( playMode == PlayerBox.PlayMode.SpeakEnglish_ListenGerman
-                                        || playMode == PlayerBox.PlayMode.SpeakGerman_ListenEnglish ) {
-                                    // when listening
-                                    // run it through permissions
-                                    if (Build.VERSION.SDK_INT >= 23) {
-                                        String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO};
-                                        if (!hasPermissions(getApplicationContext(), PERMISSIONS)) {
-                                            mRequestListenWhich = which;
-                                            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_RECORD_PERMISSION);
-                                        } else {
-                                            runPlayerActivity( which );
-                                        }
-                                    } else {
-                                        runPlayerActivity( which );
-                                    }
-                                }
-                                else {
-                                    runPlayerActivity( which );
-                                }
-                            }
-                        });
-                builder.create().show();
+                runPlayerActivity( PlayerBox.PlayMode.SpeakGerman_SpeakEnglish.ordinal() );
+                //AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                //builder.setTitle(R.string.select_play_mode)
+                //        .setItems(R.array.play_modes, new DialogInterface.OnClickListener() {
+                //            public void onClick(DialogInterface dialog, int which) {
+                //                PlayerBox.PlayMode playMode = PlayerBox.PlayMode.values()[which];
+                //                if ( playMode == PlayerBox.PlayMode.SpeakEnglish_ListenGerman
+                //                        || playMode == PlayerBox.PlayMode.SpeakGerman_ListenEnglish ) {
+                //                    // when listening
+                //                    // run it through permissions
+                //                    if (Build.VERSION.SDK_INT >= 23) {
+                //                        String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO};
+                //                        if (!hasPermissions(getApplicationContext(), PERMISSIONS)) {
+                //                            mRequestListenWhich = which;
+                //                            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_RECORD_PERMISSION);
+                //                        } else {
+                //                            runPlayerActivity( which );
+                //                        }
+                //                    } else {
+                //                        runPlayerActivity( which );
+                //                    }
+                //                }
+                //                else {
+                //                    runPlayerActivity( which );
+                //                }
+                //            }
+                //        });
+                //builder.create().show();
             }
         });
     }
