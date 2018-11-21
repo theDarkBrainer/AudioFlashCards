@@ -180,7 +180,7 @@ public class MediaNotificationManager {
             CharSequence name = "MediaSession";
             // The user-visible description of the channel.
             String description = "MediaSession and MediaPlayer";
-            int importance = NotificationManager.IMPORTANCE_LOW;
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
             NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
             // Configure the notification channel.
             mChannel.setDescription(description);
