@@ -135,8 +135,6 @@ public abstract class PlayerAdapter {
         }
     }
 
-    public abstract void setData(WordListData mWordListData, PlayerBox.PlayMode mPlayMode);
-
     /**
      * Helper class for managing audio focus related tasks.
      */

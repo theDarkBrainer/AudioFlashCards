@@ -57,7 +57,7 @@ public class WordListData implements Serializable  {
 
     private List<Data> mDataList = new ArrayList<>();
 
-    WordListData(Context context) {
+    public WordListData(Context context) {
 
         this.load( context );
 

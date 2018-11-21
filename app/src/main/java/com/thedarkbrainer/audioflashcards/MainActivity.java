@@ -249,8 +249,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void runPlayerActivity(int which) {
         Intent intent = new Intent(MainActivity.this, PlayActivity.class);
-        intent.putExtra(PlayActivity.PARAM_WORDLIST, mWordListData);
-        intent.putExtra(PlayActivity.PARAM_PLAYMODE, which);
         startActivity(intent);
     }
 

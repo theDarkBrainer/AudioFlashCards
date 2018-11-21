@@ -24,19 +24,16 @@ import android.widget.Toast;
 
 import java.util.List;
 
+import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
 import com.thedarkbrainer.audioflashcards.media_service.MediaBrowserHelper;
 import com.thedarkbrainer.audioflashcards.media_service.MusicService;
 
 public class PlayActivity extends AppCompatActivity implements View.OnClickListener {
 
-    public static final String PARAM_WORDLIST = "WordsList";
-    public static final String PARAM_PLAYMODE = "playMode";
-
     private static final int REQUEST_EXPORT_AUDIO = 100;
 
     private MediaBrowserHelper mMediaBrowserHelper;
     private WordListData mWordListData;
-    private int mPlayMode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,9 +45,7 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        Intent intent = getIntent();
-        mWordListData = (WordListData) intent.getSerializableExtra(PARAM_WORDLIST);
-        mPlayMode = intent.getIntExtra(PARAM_PLAYMODE, 0);
+        mWordListData = new WordListData(this);
 
         findViewById( R.id.btn_replay ).setOnClickListener( this );
         findViewById( R.id.btn_next ).setOnClickListener( this );
@@ -65,11 +60,7 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
         findViewById(R.id.layout_answers).setVisibility(View.INVISIBLE);
         findViewById(R.id.btn_skip).setVisibility(View.INVISIBLE);
 
-        Bundle dataBundle = new Bundle();
-        dataBundle.putSerializable(MusicService.PARAM_WORDLIST, mWordListData);
-        dataBundle.putInt(MusicService.PARAM_PLAYMODE, mPlayMode);
-
-        mMediaBrowserHelper = new MediaBrowserConnection(this, dataBundle);
+        mMediaBrowserHelper = new MediaBrowserConnection(this, null);
         mMediaBrowserHelper.registerCallback(new MediaBrowserListener());
     }
 

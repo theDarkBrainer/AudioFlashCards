@@ -318,9 +318,4 @@ public class MediaPlayerAdapter extends PlayerAdapter {
             mMediaPlayer.setVolume(volume, volume);
         }
     }
-
-    @Override
-    public void setData(WordListData mWordListData, PlayerBox.PlayMode mPlayMode) {
-
-    }
 }

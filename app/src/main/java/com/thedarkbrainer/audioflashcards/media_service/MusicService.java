@@ -37,9 +37,6 @@ import java.util.List;
 
 public class MusicService extends MediaBrowserServiceCompat {
 
-    public static final String PARAM_WORDLIST = "WordsList";
-    public static final String PARAM_PLAYMODE = "playMode";
-
     private static final String TAG = MusicService.class.getSimpleName();
 
     private MediaSessionCompat mSession;
@@ -69,6 +66,10 @@ public class MusicService extends MediaBrowserServiceCompat {
 
         mPlayback = new MediaPlayerAdapter(this, new MediaPlayerListener());
         Log.d(TAG, "onCreate: MusicService creating MediaSession, and MediaNotificationManager");
+
+        mWordListData = new WordListData(this);
+        mPlayMode = PlayerBox.PlayMode.SpeakGerman_SpeakEnglish;
+
     }
 
     @Override
@@ -89,11 +90,7 @@ public class MusicService extends MediaBrowserServiceCompat {
     public BrowserRoot onGetRoot(@NonNull String clientPackageName,
                                  int clientUid,
                                  Bundle rootHints) {
-
-        mWordListData = (WordListData) rootHints.getSerializable(PARAM_WORDLIST);
-        mPlayMode = PlayerBox.PlayMode.values()[rootHints.getInt(MusicService.PARAM_PLAYMODE, 0)];
-
-        mPlayback.setData(mWordListData, mPlayMode);
+        Log.d(TAG, "onGetRoot");
         return new BrowserRoot("root", null);
     }
 
@@ -101,6 +98,8 @@ public class MusicService extends MediaBrowserServiceCompat {
     public void onLoadChildren(
             @NonNull final String parentMediaId,
             @NonNull final Result<List<MediaBrowserCompat.MediaItem>> result) {
+
+        Log.d(TAG, "onLoadChildren");
 
         List<MediaBrowserCompat.MediaItem> arrMediaItems = new ArrayList<>();
 
