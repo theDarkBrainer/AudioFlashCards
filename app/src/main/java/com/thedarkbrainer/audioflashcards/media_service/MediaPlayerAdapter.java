@@ -19,6 +19,8 @@ package com.thedarkbrainer.audioflashcards.media_service;
 import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
+import android.net.Uri;
+import android.os.Environment;
 import android.os.SystemClock;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
@@ -28,6 +30,8 @@ import com.thedarkbrainer.audioflashcards.PlayActivity;
 import com.thedarkbrainer.audioflashcards.WordListData;
 import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
 
+import java.io.File;
+
 /**
  * Exposes the functionality of the {@link MediaPlayer} and implements the {@link PlayerAdapter}
  * so that {@link PlayActivity} can control music playback.
@@ -35,15 +39,12 @@ import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
 public final class MediaPlayerAdapter extends PlayerAdapter {
 
     private final Context mContext;
-    private PlayerBox mMediaPlayer;
+    private MediaPlayer mMediaPlayer;
     private String mFilename;
     private PlaybackInfoListener mPlaybackInfoListener;
     private MediaMetadataCompat mCurrentMedia;
     private int mState;
     private boolean mCurrentMediaPlayedToCompletion;
-
-    WordListData mWordListData;
-    PlayerBox.PlayMode mPlayMode;
 
     // Work-around for a MediaPlayer bug related to the behavior of MediaPlayer.seekTo()
     // while not playing.
@@ -68,10 +69,17 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::initializeMediaPlayer");
 
         if (mMediaPlayer == null) {
-            mMediaPlayer = new PlayerBox(mContext, mPlayMode);
-            mMediaPlayer.setOnCompletionListener(new PlayerBox.OnCompletionListener() {
+            mMediaPlayer = new MediaPlayer();
+            mMediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                 @Override
-                public void onCompleted() {
+                public void onCompletion(MediaPlayer mediaPlayer) {
+
+                    try {
+                        Thread.sleep(4000 );
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
                     mPlaybackInfoListener.onPlaybackCompleted();
 
                     // Set the state to "paused" because it most closely matches the state
@@ -79,7 +87,7 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
                     // to "stop".
                     // Paused allows: seekTo(), start(), pause(), stop()
                     // Stop allows: stop()
-                    //setNewState(PlaybackStateCompat.STATE_PAUSED);
+                    setNewState(PlaybackStateCompat.STATE_PAUSED);
                 }
             });
         }
@@ -91,8 +99,12 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::playFromMedia START id="+metadata.getDescription().getMediaId());
 
         mCurrentMedia = metadata;
-        final String mediaId = metadata.getDescription().getMediaId();
-        playFile(mediaId);
+        String mediaId = metadata.getDescription().getMediaId();
+
+        File downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File mediaFile = new File(downloadFolder, "AudioFlashCards/Item"+mediaId+".wav");
+
+        playFile(mediaFile.getAbsolutePath());
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::playFromMedia END id="+metadata.getDescription().getMediaId());
     }
 
@@ -102,10 +114,10 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
         return mCurrentMedia;
     }
 
-    private void playFile(String mediaId) {
+    private void playFile(String filename) {
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::playFile START");
 
-        boolean mediaChanged = (mFilename == null || !mediaId.equals(mFilename));
+        boolean mediaChanged = (mFilename == null || !filename.equals(mFilename));
         if (mCurrentMediaPlayedToCompletion) {
             // Last audio file was played to completion, the resourceId hasn't changed, but the
             // player was released, so force a reload of the media file for playback.
@@ -121,12 +133,28 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
             release();
         }
 
-        mFilename = mediaId;
+        mFilename = filename;
 
         initializeMediaPlayer();
 
-        WordListData.Data item = mWordListData.getItem(mediaId);
-        mMediaPlayer.setDataSource(item);
+        try {
+            Uri uri  = Uri.parse("file://"+filename);
+
+            //AssetFileDescriptor assetFileDescriptor = mContext.getAssets().openFd(mFilename);
+            //mMediaPlayer.setDataSource(
+            //        assetFileDescriptor.getFileDescriptor(),
+            //        assetFileDescriptor.getStartOffset(),
+            //        assetFileDescriptor.getLength());
+            mMediaPlayer.setDataSource(mContext, uri);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to open file: " + mFilename, e);
+        }
+
+        try {
+            mMediaPlayer.prepare();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to open file: " + mFilename, e);
+        }
 
         play();
 
@@ -272,8 +300,7 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
     }
 
     @Override
-    public void setData(WordListData wordListData, PlayerBox.PlayMode playMode) {
-        mWordListData = wordListData;
-        mPlayMode = playMode;
+    public void setData(WordListData mWordListData, PlayerBox.PlayMode mPlayMode) {
+
     }
 }
