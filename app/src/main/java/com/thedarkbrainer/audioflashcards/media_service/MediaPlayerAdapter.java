@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.SystemClock;
 import android.support.v4.media.MediaMetadataCompat;
@@ -74,20 +75,29 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
                 @Override
                 public void onCompletion(MediaPlayer mediaPlayer) {
 
-                    try {
-                        Thread.sleep(4000 );
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                    new AsyncTask<Void, Void, Void>() {
+                        @Override
+                        protected Void doInBackground(Void... voids) {
+                            try {
+                                Thread.sleep(4000 );
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            return null;
+                        }
 
-                    mPlaybackInfoListener.onPlaybackCompleted();
+                        @Override
+                        protected void onPostExecute(Void result) {
+                            mPlaybackInfoListener.onPlaybackCompleted();
 
-                    // Set the state to "paused" because it most closely matches the state
-                    // in MediaPlayer with regards to available state transitions compared
-                    // to "stop".
-                    // Paused allows: seekTo(), start(), pause(), stop()
-                    // Stop allows: stop()
-                    setNewState(PlaybackStateCompat.STATE_PAUSED);
+                            // Set the state to "paused" because it most closely matches the state
+                            // in MediaPlayer with regards to available state transitions compared
+                            // to "stop".
+                            // Paused allows: seekTo(), start(), pause(), stop()
+                            // Stop allows: stop()
+                            setNewState(PlaybackStateCompat.STATE_PAUSED);
+                        }
+                    }.execute();
                 }
             });
         }
