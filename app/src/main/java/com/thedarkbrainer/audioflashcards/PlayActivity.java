@@ -1,19 +1,9 @@
 package com.thedarkbrainer.audioflashcards;
 
-import android.app.ProgressDialog;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
-import android.os.Environment;
-import android.os.Handler;
-import android.os.Message;
-import android.os.RemoteException;
-import android.speech.tts.TextToSpeech;
-import android.speech.tts.UtteranceProgressListener;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.media.MediaBrowserCompat;
@@ -25,7 +15,6 @@ import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -33,17 +22,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Random;
-import java.util.concurrent.CountDownLatch;
 
 import com.thedarkbrainer.audioflashcards.media_client.MediaBrowserHelper;
-import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
 import com.thedarkbrainer.audioflashcards.media_service.MusicService;
 
 public class PlayActivity extends AppCompatActivity implements View.OnClickListener {
@@ -139,6 +120,7 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
     public void onStop() {
         super.onStop();
         mMediaBrowserHelper.onStop();
+        mMediaBrowserHelper = null;
         finish();
     }
 
@@ -151,6 +133,8 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
     public boolean onOptionsItemSelected(MenuItem item){
         switch (item.getItemId()) {
             case android.R.id.home:
+                mMediaBrowserHelper.onStop();
+                mMediaBrowserHelper = null;
                 finish();
                 return true;
         }
@@ -194,107 +178,27 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
-    private TextToSpeech mSpeaker;
-    private RenderRunnable mRenderRunnable = new RenderRunnable();
-    private Thread mRenderThread;
-    private ProgressDialog mRenderProgressDlg;
-    private Handler mRenderHandler = new Handler() {
+    class PlayAudioRenderer extends WordListAudioRenderer {
+        PlayAudioRenderer(WordListData wordListData) {
+            super(wordListData);
+        }
+
         @Override
-        public void handleMessage(android.os.Message msg) {
-            if ( mRenderProgressDlg != null && mRenderProgressDlg.isShowing() )
-                mRenderProgressDlg.dismiss();
-            mMediaBrowserHelper.onStart();
+        protected void onPostExecute(Boolean result) {
+            super.onPostExecute( result );
+            if ( result && mMediaBrowserHelper != null )
+                mMediaBrowserHelper.onStart();
+            else
+                finish();
         }
     };
 
-    private class RenderRunnable implements Runnable {
-
-        public CountDownLatch   mSynthesizeFinishSignal;
-
-        @Override
-        public void run() {
-            File downloadFolder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-            File parentFolder = new File(downloadFolder, "AudioFlashCards");
-            if ( ! parentFolder.exists() ) {
-                parentFolder.mkdirs();
-            }
-            else {
-                for(String s: parentFolder.list()){
-                    File currentFile = new File(parentFolder.getPath(),s);
-                    currentFile.delete();
-                }
-            }
-
-            mSpeaker.setLanguage( Locale.GERMANY /*: Locale.US*/ );
-
-            for(int i=0; i<mWordListData.getCount(); i++) {
-                Log.d("PlayActivity", "RenderRunnable: run @ " + i);
-                WordListData.Data word = mWordListData.getItem( i );
-
-                mRenderProgressDlg.setProgress( i );
-
-                HashMap<String, String> myHashRender = new HashMap();
-                String utteranceID = "wpta";
-                myHashRender.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceID);
-
-                String fileName = "/Item" + i + ".wav";
-
-                mSynthesizeFinishSignal = new CountDownLatch(1);
-                mSpeaker.synthesizeToFile( word.getGerman(), myHashRender, parentFolder.getAbsolutePath() + fileName);
-                try {
-                    mSynthesizeFinishSignal.await();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
-            Message msg = new Message();
-            mRenderHandler.sendMessage(msg);
-        }
-    }
-
     private void renderAudio() {
+        PlayAudioRenderer renderAudioAsyncTask = new PlayAudioRenderer( mWordListData );
 
-        mRenderProgressDlg = new ProgressDialog(this );
-
-        mSpeaker = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if (status != TextToSpeech.ERROR) {
-                    mRenderProgressDlg.setMessage("Rendering audio, please wait...");
-                    mRenderProgressDlg.setProgressStyle( ProgressDialog.STYLE_HORIZONTAL );
-                    mRenderProgressDlg.setProgress( 0 );
-                    mRenderProgressDlg.setMax( mWordListData.getCount() );
-                    mRenderProgressDlg.show();
-
-                    Log.d("PlayActivity", "speakers ready");
-                    mRenderThread = new Thread(mRenderRunnable);
-                    mRenderThread.start();
-                } else {
-                    //throw new Exception("TextToSpeak is unsupported");
-                }
-            }
-        });
-
-        mSpeaker.setSpeechRate(1.0f);
-        mSpeaker.setOnUtteranceProgressListener(new UtteranceProgressListener() {
-            @Override
-            public void onStart(String utteranceId) { }
-
-            @Override
-            public void onDone(String utteranceId) {
-                Log.d("PlayActivity", "UtteranceProgressListener: onDone");
-                mRenderRunnable.mSynthesizeFinishSignal.countDown();
-            }
-
-
-            @Override
-            public void onError(String utteranceId) {
-                Log.d("PlayActivity", "UtteranceProgressListener: onError");
-                mRenderRunnable.mSynthesizeFinishSignal.countDown();
-            }
-        });
+        renderAudioAsyncTask.process( this );
     }
+
 
     /**
      * Customize the connection to our {@link android.support.v4.media.MediaBrowserServiceCompat}

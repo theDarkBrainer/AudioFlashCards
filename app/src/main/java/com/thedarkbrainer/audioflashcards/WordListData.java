@@ -190,10 +190,14 @@ public class WordListData implements Serializable  {
         mDataList.add(data);
     }
 
-    public void clear() { mDataList.clear(); }
+    public void clear() {
+        mDataList.clear();
+        WordListAudioRenderer.clearAudioFolder();
+    }
 
     public void removeItem(int position) {
         mDataList.remove( position );
+        WordListAudioRenderer.clearAudioFolder();
     }
 
     public class RandomIterator implements WordListData.ComplexIterator
