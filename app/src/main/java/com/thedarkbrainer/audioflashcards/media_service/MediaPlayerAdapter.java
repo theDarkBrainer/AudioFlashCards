@@ -37,7 +37,7 @@ import java.io.File;
  * Exposes the functionality of the {@link MediaPlayer} and implements the {@link PlayerAdapter}
  * so that {@link PlayActivity} can control music playback.
  */
-public final class MediaPlayerAdapter extends PlayerAdapter {
+public class MediaPlayerAdapter extends PlayerAdapter {
 
     private final Context mContext;
     private MediaPlayer mMediaPlayer;
@@ -50,6 +50,14 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
     // Work-around for a MediaPlayer bug related to the behavior of MediaPlayer.seekTo()
     // while not playing.
     private int mSeekWhileNotPlaying = -1;
+
+    public static abstract class PlaybackInfoListener {
+
+        public abstract void onPlaybackStateChange(PlaybackStateCompat state);
+
+        public void onPlaybackCompleted() {
+        }
+    }
 
     public MediaPlayerAdapter(Context context, PlaybackInfoListener listener) {
         super(context);

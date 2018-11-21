@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.thedarkbrainer.audioflashcards.media_client;
+package com.thedarkbrainer.audioflashcards.media_service;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -30,9 +30,6 @@ import android.support.v4.media.session.MediaControllerCompat.Callback;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
-
-import com.thedarkbrainer.audioflashcards.PlayActivity;
-import com.thedarkbrainer.audioflashcards.media_service.MusicService;
 
 import java.util.ArrayList;
 import java.util.List;

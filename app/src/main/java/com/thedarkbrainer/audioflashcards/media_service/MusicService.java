@@ -224,7 +224,7 @@ public class MusicService extends MediaBrowserServiceCompat {
     }
 
     // MediaPlayerAdapter Callback: MediaPlayerAdapter state -> MusicService.
-    public class MediaPlayerListener extends PlaybackInfoListener {
+    public class MediaPlayerListener extends MediaPlayerAdapter.PlaybackInfoListener {
 
         private final ServiceManager mServiceManager;
 

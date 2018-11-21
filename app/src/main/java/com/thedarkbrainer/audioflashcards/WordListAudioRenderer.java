@@ -64,12 +64,14 @@ public class WordListAudioRenderer extends AsyncTask<Void, Void, Boolean> {
 
     static void clearAudioFolder() {
         File parentFolder = getAudioFolder();
-        for(String s: parentFolder.list()){
-            File currentFile = new File(parentFolder.getPath(),s);
-            currentFile.delete();
-        }
+        if ( parentFolder.exists() ) {
+            for (String s : parentFolder.list()) {
+                File currentFile = new File(parentFolder.getPath(), s);
+                currentFile.delete();
+            }
 
-        parentFolder.delete();
+            parentFolder.delete();
+        }
     }
 
     static File getAudioFolder() {

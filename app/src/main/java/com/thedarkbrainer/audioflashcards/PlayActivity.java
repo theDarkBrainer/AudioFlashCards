@@ -24,7 +24,7 @@ import android.widget.Toast;
 
 import java.util.List;
 
-import com.thedarkbrainer.audioflashcards.media_client.MediaBrowserHelper;
+import com.thedarkbrainer.audioflashcards.media_service.MediaBrowserHelper;
 import com.thedarkbrainer.audioflashcards.media_service.MusicService;
 
 public class PlayActivity extends AppCompatActivity implements View.OnClickListener {
