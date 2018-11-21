@@ -59,6 +59,30 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
         mPlaybackInfoListener = listener;
     }
 
+    class PlayerWaitAsyncTask extends AsyncTask<Void, Void, Void> {
+        @Override
+        protected Void doInBackground(Void... voids) {
+            try {
+                Thread.sleep(4000 );
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            mPlaybackInfoListener.onPlaybackCompleted();
+
+            // Set the state to "paused" because it most closely matches the state
+            // in MediaPlayer with regards to available state transitions compared
+            // to "stop".
+            // Paused allows: seekTo(), start(), pause(), stop()
+            // Stop allows: stop()
+            setNewState(PlaybackStateCompat.STATE_PAUSED);
+        }
+    }
+
     /**
      * Once the {@link MediaPlayer} is released, it can't be used again, and another one has to be
      * created. In the onStop() method of the {@link PlayActivity} the {@link MediaPlayer} is
@@ -75,29 +99,7 @@ public final class MediaPlayerAdapter extends PlayerAdapter {
                 @Override
                 public void onCompletion(MediaPlayer mediaPlayer) {
 
-                    new AsyncTask<Void, Void, Void>() {
-                        @Override
-                        protected Void doInBackground(Void... voids) {
-                            try {
-                                Thread.sleep(4000 );
-                            } catch (InterruptedException e) {
-                                e.printStackTrace();
-                            }
-                            return null;
-                        }
-
-                        @Override
-                        protected void onPostExecute(Void result) {
-                            mPlaybackInfoListener.onPlaybackCompleted();
-
-                            // Set the state to "paused" because it most closely matches the state
-                            // in MediaPlayer with regards to available state transitions compared
-                            // to "stop".
-                            // Paused allows: seekTo(), start(), pause(), stop()
-                            // Stop allows: stop()
-                            setNewState(PlaybackStateCompat.STATE_PAUSED);
-                        }
-                    }.execute();
+                    new PlayerWaitAsyncTask().execute();
                 }
             });
         }
