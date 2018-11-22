@@ -30,7 +30,6 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import com.thedarkbrainer.audioflashcards.WordListData;
-import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +45,6 @@ public class MusicService extends MediaBrowserServiceCompat {
     private boolean mServiceInStartedState;
 
     private WordListData mWordListData;
-    private PlayerBox.PlayMode mPlayMode;
 
     @Override
     public void onCreate() {
@@ -68,8 +66,6 @@ public class MusicService extends MediaBrowserServiceCompat {
         Log.d(TAG, "onCreate: MusicService creating MediaSession, and MediaNotificationManager");
 
         mWordListData = new WordListData(this);
-        mPlayMode = PlayerBox.PlayMode.SpeakGerman_SpeakEnglish;
-
     }
 
     @Override

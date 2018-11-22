@@ -28,7 +28,6 @@ import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import com.thedarkbrainer.audioflashcards.WordListData;
-import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
 
 /**
  * Abstract player implementation that handles playing music with proper handling of headphones
