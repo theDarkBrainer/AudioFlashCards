@@ -14,6 +14,9 @@ import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.media.MediaBrowserCompat;
+import android.support.v4.media.session.MediaControllerCompat;
+import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -30,7 +33,9 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
+import com.thedarkbrainer.audioflashcards.media_service.MediaBrowserHelper;
+import com.thedarkbrainer.audioflashcards.media_service.MusicService;
+import com.thedarkbrainer.audioflashcards.media_service.PlayerAdapter;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,10 +49,10 @@ public class MainActivity extends AppCompatActivity {
     private final int REC_CODE_NEWWORD = 101;
     private final int REC_CODE_EDITWORD = 102;
 
-    private static final int REQUEST_RECORD_PERMISSION = 100;
     private static final int REQUEST_SELECT_FILE_AND_LOAD = 111;
     private static final int REQUEST_SAVE_TO_SSD_WITH_UI = 112;
     private static final int REQUEST_SAVE_ALL = 113;
+    private static final int REQUEST_EXPORT_PLAY_AUDIO = 114;
 
     private static final String EXTERNAL_FILE_PATH_KEY = "ExternalFile";
 
@@ -57,6 +62,9 @@ public class MainActivity extends AppCompatActivity {
     private WordListData mWordListData;
     private ListView mWordListView;
     private WordListAdapter mWordListDataAdapter;
+
+    private PlayButtonListener mPlayButtonListener;
+    private boolean mIsPlaying = false;
 
     private class WordListAdapter extends BaseAdapter {
 
@@ -144,40 +152,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        mPlayButtonListener = new PlayButtonListener();
+
         FloatingActionButton playButton = findViewById(R.id.btn_play);
-        playButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                runPlayerActivity( PlayerBox.PlayMode.SpeakGerman_SpeakEnglish.ordinal() );
-                //AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-                //builder.setTitle(R.string.select_play_mode)
-                //        .setItems(R.array.play_modes, new DialogInterface.OnClickListener() {
-                //            public void onClick(DialogInterface dialog, int which) {
-                //                PlayerBox.PlayMode playMode = PlayerBox.PlayMode.values()[which];
-                //                if ( playMode == PlayerBox.PlayMode.SpeakEnglish_ListenGerman
-                //                        || playMode == PlayerBox.PlayMode.SpeakGerman_ListenEnglish ) {
-                //                    // when listening
-                //                    // run it through permissions
-                //                    if (Build.VERSION.SDK_INT >= 23) {
-                //                        String[] PERMISSIONS = {Manifest.permission.RECORD_AUDIO};
-                //                        if (!hasPermissions(getApplicationContext(), PERMISSIONS)) {
-                //                            mRequestListenWhich = which;
-                //                            ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_RECORD_PERMISSION);
-                //                        } else {
-                //                            runPlayerActivity( which );
-                //                        }
-                //                    } else {
-                //                        runPlayerActivity( which );
-                //                    }
-                //                }
-                //                else {
-                //                    runPlayerActivity( which );
-                //                }
-                //            }
-                //        });
-                //builder.create().show();
-            }
-        });
+        playButton.setOnClickListener( mPlayButtonListener );
     }
 
     @Override
@@ -245,11 +223,6 @@ public class MainActivity extends AppCompatActivity {
 
 
         return result;
-    }
-
-    private void runPlayerActivity(int which) {
-        Intent intent = new Intent(MainActivity.this, PlayActivity.class);
-        startActivity(intent);
     }
 
     private void confirmLossOfData(DialogInterface.OnClickListener yesCallback) {
@@ -450,13 +423,6 @@ public class MainActivity extends AppCompatActivity {
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
-            case REQUEST_RECORD_PERMISSION: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    runPlayerActivity( mRequestListenWhich );
-                } else {
-                    Toast.makeText(getApplicationContext(), "Requesting listening permission denied!", Toast.LENGTH_SHORT).show();
-                }
-            } break;
 
             case REQUEST_SELECT_FILE_AND_LOAD: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -483,6 +449,147 @@ public class MainActivity extends AppCompatActivity {
                     Toast.makeText(this, "The app was not allowed to write in your storage", Toast.LENGTH_LONG).show();
                 }
             } break;
+
+            case REQUEST_EXPORT_PLAY_AUDIO: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    mPlayButtonListener.renderPlayAudio();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Requesting writing denied!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        }
+    }
+
+    class PlayButtonListener implements View.OnClickListener {
+
+        private MediaBrowserHelper mMediaBrowserHelper;
+
+        @Override
+        public void onClick(View v) {
+            if ( mMediaBrowserHelper != null && mIsPlaying ) {
+                playWords();
+            }
+            else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                builder.setTitle(R.string.select_play_mode)
+                        .setItems(R.array.play_modes, new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (which) {
+                                    case 0:
+                                        playWords();
+                                        break;
+                                    case 1:
+                                        exerciseWords(true, true);
+                                        break;
+                                    case 2:
+                                        exerciseWords(false, true);
+                                        break;
+                                    case 3:
+                                        exerciseWords(true, false);
+                                        break;
+                                    case 4:
+                                        exerciseWords(false, false);
+                                        break;
+                                    default:
+                                        exerciseWords(true, false);
+                                        break;
+                                }
+                            }
+                        });
+                builder.create().show();
+            }
+        }
+
+        private void exerciseWords(boolean doGerman, boolean withAudio) {
+            if (mMediaBrowserHelper != null) {
+                mMediaBrowserHelper.onStop();
+                mMediaBrowserHelper = null;
+            }
+
+            Intent intent = new Intent(MainActivity.this, PlayActivity.class);
+            intent.putExtra(PlayActivity.PARAM_DO_GERMAN, doGerman);
+            intent.putExtra(PlayActivity.PARAM_DO_AUDIO, withAudio);
+            intent.putExtra(PlayActivity.PARAM_WORD_LIST, mWordListData);
+            startActivity(intent);
+        }
+
+        private void playWords() {
+            if ( mMediaBrowserHelper == null ) {
+                mMediaBrowserHelper = new MediaBrowserConnection(MainActivity.this, null);
+                mMediaBrowserHelper.registerCallback(new MediaBrowserListener());
+
+                if (Build.VERSION.SDK_INT >= 23) {
+                    String[] PERMISSIONS = {android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
+                    if (!hasPermissions(MainActivity.this, PERMISSIONS)) {
+                        ActivityCompat.requestPermissions(MainActivity.this, PERMISSIONS, REQUEST_EXPORT_PLAY_AUDIO);
+                    } else {
+                        this.renderPlayAudio();
+                    }
+                } else {
+                    this.renderPlayAudio();
+                }
+            }
+            else {
+                if (mIsPlaying)
+                    mMediaBrowserHelper.getTransportControls().pause();
+                else
+                    mMediaBrowserHelper.getTransportControls().play();
+            }
+        }
+
+        private void renderPlayAudio() {
+            PlayAudioRenderer renderAudioAsyncTask = new PlayAudioRenderer( mWordListData );
+            renderAudioAsyncTask.process( MainActivity.this );
+        }
+
+        class PlayAudioRenderer extends WordListAudioRenderer {
+            PlayAudioRenderer(WordListData wordListData) {
+                super(wordListData);
+            }
+
+            @Override
+            protected void onPostExecute(Boolean result) {
+                super.onPostExecute( result );
+
+                FloatingActionButton playButton = findViewById(R.id.btn_play);
+                if ( result && mMediaBrowserHelper != null ) {
+                    mMediaBrowserHelper.onStart();
+                }
+            }
+        };
+    }
+
+    private class MediaBrowserListener extends MediaControllerCompat.Callback {
+        @Override
+        public void onPlaybackStateChanged(PlaybackStateCompat playbackState) {
+            mIsPlaying = playbackState != null && playbackState.getState() == PlaybackStateCompat.STATE_PLAYING;
+            FloatingActionButton playButton = findViewById(R.id.btn_play);
+            playButton.setImageResource( mIsPlaying ? android.R.drawable.ic_media_pause : android.R.drawable.ic_media_play );
+        }
+    }
+    private class MediaBrowserConnection extends MediaBrowserHelper {
+        private MediaBrowserConnection(Context context, Bundle data) {
+            super(context, MusicService.class, data);
+        }
+
+        @Override
+        protected void onConnected(@NonNull MediaControllerCompat mediaController) {
+        }
+
+        @Override
+        protected void onChildrenLoaded(@NonNull String parentId,
+                                        @NonNull List<MediaBrowserCompat.MediaItem> children) {
+            super.onChildrenLoaded(parentId, children);
+
+            final MediaControllerCompat mediaController = getMediaController();
+
+            // Queue up all media items for this simple sample.
+            for (final MediaBrowserCompat.MediaItem mediaItem : children) {
+                mediaController.addQueueItem(mediaItem.getDescription());
+            }
+
+            // Start play immediately
+            mediaController.getTransportControls().play();
         }
     }
 }

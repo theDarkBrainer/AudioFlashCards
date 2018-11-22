@@ -1,12 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="play_modes">
-        <item>Quiet</item>
-        <item>Speak German - Speak English</item>
-        <item>Speak English - Speak German</item>
-        <item>Speak German - Listen English</item>
-        <item>Speak German - Speak English</item>
-        <item>Speak German - Click English</item>
-        <item>Speak English - Click German</item>
+        <item>Speak German</item>
+        <item>Exercise German w/ Audio</item>
+        <item>Exercise English w/ Audio</item>
+        <item>Exercise German w/o Audio</item>
+        <item>Exercise English w/o Audio</item>
     </string-array>
 </resources>

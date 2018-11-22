@@ -304,6 +304,9 @@ public class WordListData implements Serializable  {
             if ( isCorrect )
                 percentOverdue = Math.min(2.0f, (mCurrentDate - data.mDateLastReviewed) / data.mDaysBetweenReviews);
 
+            if ( data.mUses == 0 )
+                data.mUses = 1;
+
             double performanceRating = data.mErrors / (data.mUses - data.mSkipped);
             data.mDifficulty += percentOverdue * 1/17 * (8 - 9 * performanceRating);
 

@@ -195,8 +195,7 @@ public class MediaBrowserHelper {
         public void onConnected() {
             try {
                 // Get a MediaController for the MediaSession.
-                mMediaController =
-                        new MediaControllerCompat(mContext, mMediaBrowser.getSessionToken());
+                mMediaController = new MediaControllerCompat(mContext, mMediaBrowser.getSessionToken());
                 mMediaController.registerCallback(mMediaControllerCallback);
 
                 // Sync existing MediaSession state to the UI.
