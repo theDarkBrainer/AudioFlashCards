@@ -23,13 +23,13 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.SystemClock;
+import android.provider.MediaStore;
 import android.support.v4.media.MediaMetadataCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.util.Log;
 
 import com.thedarkbrainer.audioflashcards.PlayActivity;
 import com.thedarkbrainer.audioflashcards.WordListData;
-import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
 
 import java.io.File;
 
@@ -46,6 +46,8 @@ public class MediaPlayerAdapter extends PlayerAdapter {
     private MediaMetadataCompat mCurrentMedia;
     private int mState;
     private boolean mCurrentMediaPlayedToCompletion;
+
+    private PlayerWaitAsyncTask mPlayerWaitTask;
 
     // Work-around for a MediaPlayer bug related to the behavior of MediaPlayer.seekTo()
     // while not playing.
@@ -80,14 +82,18 @@ public class MediaPlayerAdapter extends PlayerAdapter {
 
         @Override
         protected void onPostExecute(Void result) {
-            mPlaybackInfoListener.onPlaybackCompleted();
+            mPlayerWaitTask = null;
+
+            if ( mState == PlaybackStateCompat.STATE_PLAYING ) {
+                mPlaybackInfoListener.onPlaybackCompleted();
+            }
 
             // Set the state to "paused" because it most closely matches the state
             // in MediaPlayer with regards to available state transitions compared
             // to "stop".
             // Paused allows: seekTo(), start(), pause(), stop()
             // Stop allows: stop()
-            setNewState(PlaybackStateCompat.STATE_PAUSED);
+            //setNewState(PlaybackStateCompat.STATE_PAUSED);
         }
     }
 
@@ -107,7 +113,10 @@ public class MediaPlayerAdapter extends PlayerAdapter {
                 @Override
                 public void onCompletion(MediaPlayer mediaPlayer) {
 
-                    new PlayerWaitAsyncTask().execute();
+                    if ( mState == PlaybackStateCompat.STATE_PLAYING ) {
+                        mPlayerWaitTask = new PlayerWaitAsyncTask();
+                        mPlayerWaitTask.execute();
+                    }
                 }
             });
         }
@@ -184,6 +193,10 @@ public class MediaPlayerAdapter extends PlayerAdapter {
     @Override
     public void onStop() {
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::onStop START");
+        if ( mPlayerWaitTask != null )
+            mPlayerWaitTask.cancel(true);
+        mPlayerWaitTask = null;
+
         // Regardless of whether or not the MediaPlayer has been created / started, the state must
         // be updated, so that MediaNotificationManager can take down the notification.
         setNewState(PlaybackStateCompat.STATE_STOPPED);
@@ -202,7 +215,7 @@ public class MediaPlayerAdapter extends PlayerAdapter {
     @Override
     public boolean isPlaying() {
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::isPlaying");
-        return mMediaPlayer != null && mMediaPlayer.isPlaying();
+        return (mMediaPlayer != null && mMediaPlayer.isPlaying()) || mPlayerWaitTask != null;
     }
 
     @Override
@@ -220,6 +233,13 @@ public class MediaPlayerAdapter extends PlayerAdapter {
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::onPause START");
         if (mMediaPlayer != null && mMediaPlayer.isPlaying()) {
             mMediaPlayer.pause();
+        }
+
+        if ( mPlayerWaitTask != null )
+            mPlayerWaitTask.cancel(true);
+        mPlayerWaitTask = null;
+
+        if ( mState == PlaybackStateCompat.STATE_PLAYING ) {
             setNewState(PlaybackStateCompat.STATE_PAUSED);
         }
         Log.d("MediaPlayerAdapter", "MediaPlayerAdapter::onPause END");
