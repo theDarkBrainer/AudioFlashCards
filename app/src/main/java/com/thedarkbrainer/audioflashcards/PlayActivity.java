@@ -1,16 +1,6 @@
 package com.thedarkbrainer.audioflashcards;
 
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.media.MediaBrowserCompat;
-import android.support.v4.media.MediaMetadataCompat;
-import android.support.v4.media.session.MediaControllerCompat;
-import android.support.v4.media.session.MediaSessionCompat;
-import android.support.v4.media.session.PlaybackStateCompat;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -22,18 +12,23 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.util.List;
-
-import com.thedarkbrainer.audioflashcards.media_player.PlayerBox;
-import com.thedarkbrainer.audioflashcards.media_service.MediaBrowserHelper;
-import com.thedarkbrainer.audioflashcards.media_service.MusicService;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Locale;
+import java.util.Random;
 
 public class PlayActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private static final int REQUEST_EXPORT_AUDIO = 100;
+    public static final String PARAM_DO_GERMAN = "DoGerman";
+    public static final String PARAM_DO_AUDIO = "DoAudio";
+    public static final String PARAM_WORD_LIST = "WordList";
 
-    private MediaBrowserHelper mMediaBrowserHelper;
+    private boolean mDoGerman = true;
+    private boolean mDoAudio = true;
     private WordListData mWordListData;
+    private WordListData.ComplexIterator mWordsIterator;
+
+    private TextToSpeech mSpeaker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,74 +40,68 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        mWordListData = new WordListData(this);
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            mDoGerman = extras.getBoolean(PARAM_DO_GERMAN, true);
+            mDoAudio = extras.getBoolean(PARAM_DO_AUDIO, true);
+            mWordListData = (WordListData) extras.getSerializable(PARAM_WORD_LIST);
+        }
+        else {
+            mWordListData = new WordListData(this);
+        }
 
-        findViewById( R.id.btn_replay ).setOnClickListener( this );
         findViewById( R.id.btn_next ).setOnClickListener( this );
-        findViewById( R.id.btn_remove ).setOnClickListener( this );
+        findViewById( R.id.btn_replay ).setOnClickListener( this );
         findViewById( R.id.btn_stop ).setOnClickListener( this );
-        findViewById( R.id.btn_skip ).setOnClickListener( this );
         findViewById( R.id.btn_answer1 ).setOnClickListener( this );
         findViewById( R.id.btn_answer2 ).setOnClickListener( this );
         findViewById( R.id.btn_answer3 ).setOnClickListener( this );
 
         findViewById(R.id.text_answer).setVisibility(View.INVISIBLE);
         findViewById(R.id.layout_answers).setVisibility(View.INVISIBLE);
-        findViewById(R.id.btn_skip).setVisibility(View.INVISIBLE);
 
-        mMediaBrowserHelper = new MediaBrowserConnection(this, null);
-        mMediaBrowserHelper.registerCallback(new MediaBrowserListener());
-    }
+        mWordsIterator = mWordListData.iterator_sm2();
 
+        if ( mDoAudio == false ) {
+            Log.d("PlayActivity", "no audio");
 
-    private static boolean hasPermissions(Context context, String... permissions) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && context != null && permissions != null) {
-            for (String permission : permissions) {
-                if (ActivityCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED) {
-                    return false;
-                }
-            }
+            findViewById(R.id.btn_replay).setVisibility(mDoAudio ? View.VISIBLE : View.INVISIBLE);
+            doWord();
         }
-        return true;
-    }
+        else {
+            findViewById(R.id.btn_replay).setVisibility(View.INVISIBLE);
 
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case REQUEST_EXPORT_AUDIO: {
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    renderAudio();
-                } else {
-                    Toast.makeText(getApplicationContext(), "Requesting writing denied!", Toast.LENGTH_SHORT).show();
+            Log.d("PlayActivity", "create TextToSpeech");
+
+            mSpeaker = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
+                @Override
+                public void onInit(int status) {
+                    if (status != TextToSpeech.ERROR) {
+                        Log.d("PlayActivity", "speaker ready");
+                        findViewById(R.id.btn_replay).setVisibility(mDoAudio ? View.VISIBLE : View.INVISIBLE);
+                        doWord();
+                    } else {
+                        Log.d("PlayActivity", "speaker init failed");
+                    }
                 }
-            }
-            break;
-        }
-    }
+            });
 
-    @Override
-    public void onStart() {
-        super.onStart();
-
-        if (Build.VERSION.SDK_INT >= 23) {
-            String[] PERMISSIONS = {android.Manifest.permission.WRITE_EXTERNAL_STORAGE};
-            if (!hasPermissions(this, PERMISSIONS)) {
-                ActivityCompat.requestPermissions(this, PERMISSIONS, REQUEST_EXPORT_AUDIO);
-            } else {
-                this.renderAudio();
-            }
-        } else {
-            this.renderAudio();
+            mSpeaker.setSpeechRate(1.0f);
         }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        mMediaBrowserHelper.onStop();
-        mMediaBrowserHelper = null;
-        finish();
+        if ( mSpeaker != null )
+            mSpeaker.stop();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if ( mSpeaker != null )
+            mSpeaker.shutdown();
     }
 
     @Override
@@ -124,8 +113,6 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
     public boolean onOptionsItemSelected(MenuItem item){
         switch (item.getItemId()) {
             case android.R.id.home:
-                mMediaBrowserHelper.onStop();
-                mMediaBrowserHelper = null;
                 finish();
                 return true;
         }
@@ -136,23 +123,18 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         findViewById(R.id.text_answer).setVisibility(View.INVISIBLE);
         findViewById(R.id.layout_answers).setVisibility(View.INVISIBLE);
-        findViewById(R.id.btn_skip).setVisibility(View.INVISIBLE);
 
         switch (v.getId()) {
             case R.id.btn_replay: {
-                mMediaBrowserHelper.getTransportControls().rewind();
+                doWord();
             } break;
 
             case R.id.btn_next: {
-                mMediaBrowserHelper.getTransportControls().skipToNext();
-            } break;
-
-            case R.id.btn_skip: {
-                mMediaBrowserHelper.getTransportControls().skipToNext();
+                mWordsIterator.next();
+                doWord();
             } break;
 
             case R.id.btn_stop:
-                mMediaBrowserHelper.getTransportControls().stop();
                 this.finish();
                 break;
 
@@ -162,99 +144,73 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
                 Button answerButton = (Button) v;
                 answerButton.getText();
 
-                //String command = (Integer) v.getTag() == 1 ? PlayBackgroundService.COMMAND_ANSER_OK : PlayBackgroundService.COMMAND_ANSER_FAIL;
-                //MediaControllerCompat.getMediaController(PlayActivity.this).sendCommand(command, null, null);
+                boolean isCorrect = (Integer) v.getTag() == 1;
+                reportWord( isCorrect );
 
+                if ( isCorrect ) {
+                    mWordsIterator.next();
+                    doWord();
+                }
+                else {
+                    Toast.makeText(this, "Incorrect!", Toast.LENGTH_SHORT).show();
+                    doWord();
+                }
             } break;
         }
     }
 
-    class PlayAudioRenderer extends WordListAudioRenderer {
-        PlayAudioRenderer(WordListData wordListData) {
-            super(wordListData);
+    private void doWord() {
+        Log.d("PlayActivity", "doWord");
+
+        WordListData.Data word = mWordsIterator.get();
+
+        EditText wordEdit = findViewById(R.id.edit_word);
+        wordEdit.setText( mDoGerman ? word.getGerman() : word.getEnglish() );
+
+        if ( mSpeaker != null ) {
+            mSpeaker.stop();
+
+            mSpeaker.setLanguage( mDoGerman ? Locale.GERMANY : Locale.US );
+            mSpeaker.speak( mDoGerman ? word.getGerman() : word.getEnglish(), TextToSpeech.QUEUE_FLUSH, null, "PlayActivitySpeaker");
         }
 
-        @Override
-        protected void onPostExecute(Boolean result) {
-            super.onPostExecute( result );
-            if ( result && mMediaBrowserHelper != null )
-                mMediaBrowserHelper.onStart();
-            else
-                finish();
-        }
-    };
+        ArrayList<Button> answerButtons = new ArrayList<>();
+        answerButtons.add((Button) findViewById(R.id.btn_answer1));
+        answerButtons.add((Button) findViewById(R.id.btn_answer2));
+        answerButtons.add((Button) findViewById(R.id.btn_answer3));
 
-    private void renderAudio() {
-        PlayAudioRenderer renderAudioAsyncTask = new PlayAudioRenderer( mWordListData );
+        ArrayList<String> answerTexts = new ArrayList<>();
+        answerTexts.add( mDoGerman ? word.mEnglish : word.mGerman );
+        answerTexts.add( mDoGerman ? mWordsIterator.getRandomExcudingCurrent().mEnglish : mWordsIterator.getRandomExcudingCurrent().mGerman );
+        answerTexts.add( mDoGerman ? mWordsIterator.getRandomExcudingCurrent().mEnglish : mWordsIterator.getRandomExcudingCurrent().mGerman );
+        ArrayList<Integer> answerTags = new ArrayList<>();
+        answerTags.add(1);
+        answerTags.add(0);
+        answerTags.add(0);
 
-        renderAudioAsyncTask.process( this );
-    }
-
-
-    /**
-     * Customize the connection to our {@link android.support.v4.media.MediaBrowserServiceCompat}
-     * and implement our app specific desires.
-     */
-    private class MediaBrowserConnection extends MediaBrowserHelper {
-        private MediaBrowserConnection(Context context, Bundle data) {
-            super(context, MusicService.class, data);
+        Random randomGenerator = new Random(System.currentTimeMillis());
+        for (int loops = 0; loops < 10; loops++) {
+            int i = randomGenerator.nextInt(3);
+            int j = randomGenerator.nextInt(3);
+            Collections.swap(answerTexts, i, j);
+            Collections.swap(answerTags, i, j);
         }
 
-        @Override
-        protected void onConnected(@NonNull MediaControllerCompat mediaController) {
-        }
+        findViewById(R.id.text_answer).setVisibility(View.VISIBLE);
+        findViewById(R.id.layout_answers).setVisibility(View.VISIBLE);
 
-        @Override
-        protected void onChildrenLoaded(@NonNull String parentId,
-                                        @NonNull List<MediaBrowserCompat.MediaItem> children) {
-            super.onChildrenLoaded(parentId, children);
-
-            final MediaControllerCompat mediaController = getMediaController();
-
-            // Queue up all media items for this simple sample.
-            for (final MediaBrowserCompat.MediaItem mediaItem : children) {
-                mediaController.addQueueItem(mediaItem.getDescription());
-            }
-
-            // Start play immediately
-            mediaController.getTransportControls().play();
+        int i = 0;
+        for (Button button : answerButtons) {
+            button.setText(answerTexts.get(i));
+            button.setTag(answerTags.get(i));
+            i ++;
         }
     }
 
-    /**
-     * Implementation of the {@link MediaControllerCompat.Callback} methods we're interested in.
-     * <p>
-     * Here would also be where one could override
-     * {@code onQueueChanged(List<MediaSessionCompat.QueueItem> queue)} to get informed when items
-     * are added or removed from the queue. We don't do this here in order to keep the UI
-     * simple.
-     */
-    private class MediaBrowserListener extends MediaControllerCompat.Callback {
-
-        @Override
-        public void onPlaybackStateChanged(PlaybackStateCompat playbackState) {
-            Log.d("PlayActivity", "MediaBrowserListener:onPlaybackStateChanged state="+(playbackState == null ? "null" : playbackState.getState()));
-            //if ( playbackState != null && playbackState.getState() != PlaybackStateCompat.STATE_PLAYING )
-            //    finish();
-        }
-
-        @Override
-        public void onMetadataChanged(MediaMetadataCompat mediaMetadata) {
-            if (mediaMetadata == null) {
-                return;
-            }
-            EditText wordEdit = findViewById(R.id.edit_word);
-            wordEdit.setText( mediaMetadata.getString(MediaMetadataCompat.METADATA_KEY_TITLE) );
-        }
-
-        @Override
-        public void onSessionDestroyed() {
-            super.onSessionDestroyed();
-        }
-
-        @Override
-        public void onQueueChanged(List<MediaSessionCompat.QueueItem> queue) {
-            super.onQueueChanged(queue);
-        }
+    void reportWord(boolean isOk) {
+        mWordsIterator.setCurrentAnswer(isOk);
+        if( ! isOk )
+            mWordsIterator.get().mErrors++;
+        mWordsIterator.get().mUses++;
     }
 }
