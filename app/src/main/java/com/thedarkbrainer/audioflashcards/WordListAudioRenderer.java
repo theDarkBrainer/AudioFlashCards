@@ -40,7 +40,7 @@ public class WordListAudioRenderer extends AsyncTask<Void, Void, Boolean> {
             }
         });
 
-        mSpeaker.setSpeechRate(1.0f);
+        mSpeaker.setSpeechRate(0.8f);
         mSpeaker.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override
             public void onStart(String utteranceId) { }

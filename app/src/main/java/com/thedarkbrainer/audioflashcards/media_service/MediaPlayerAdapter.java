@@ -73,7 +73,7 @@ public class MediaPlayerAdapter extends PlayerAdapter {
         @Override
         protected Void doInBackground(Void... voids) {
             try {
-                Thread.sleep(4000 );
+                Thread.sleep(5000 );
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

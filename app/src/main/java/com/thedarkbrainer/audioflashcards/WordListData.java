@@ -14,7 +14,9 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 
@@ -34,13 +36,20 @@ public class WordListData implements Serializable  {
         public String getId() { return mId; }
         public String getGerman() { return mGerman; }
         public String getEnglish() { return mEnglish; }
+        public void setGerman(String value) { mGerman = value; }
+        public void setEnglish(String value) { mEnglish = value; }
+        public void increaseUses() { mUses ++; }
+        public void increateErrors() { mErrors ++; }
+        public int getUses() { return mUses; }
+        public int getErrors() { return mErrors; }
 
-        String mId;
-        String mGerman;
-        String mEnglish;
-        int mUses;
-        int mErrors;
-        int mSkipped;
+        private String mId;
+        private String mGerman;
+        private String mEnglish;
+        private int mUses;
+        private int mErrors;
+        private int mSkipped;
+
         public double mDifficulty = 0.3f;
         public double mDaysBetweenReviews = 1.0f;
         public int mDateLastReviewed = 0;
@@ -97,7 +106,7 @@ public class WordListData implements Serializable  {
 
     }
 
-    void save(Context context) {
+    public void save(Context context) {
         FileOutputStream outputStream;
         try {
             outputStream = context.openFileOutput(FILENAME, Context.MODE_PRIVATE);
@@ -325,11 +334,104 @@ public class WordListData implements Serializable  {
         }
     }
 
+    public class DistributionIterator implements WordListData.ComplexIterator
+    {
+        private DistributedRandomNumberGenerator mGenerator;
+        private int mCurrentIndex;
+        private int mMaxUses;
+
+        DistributionIterator() {
+            mGenerator = new DistributedRandomNumberGenerator();
+            int cnt = mDataList.size();
+            mMaxUses = 0;
+            for(int i=0; i<cnt; i++) {
+                Data data = mDataList.get(i);
+                mMaxUses = Math.max(mMaxUses, data.mUses);
+            }
+
+            if ( mMaxUses == 0 )
+                mMaxUses = 1;
+
+            for(int i=0; i<cnt; i++) {
+                Data data = mDataList.get(i);
+                double distribution = (1 - data.mUses / mMaxUses);
+                mGenerator.addNumber(i, distribution );
+            }
+
+            mCurrentIndex = mGenerator.getDistributedRandomNumber();
+        }
+
+        @Override
+        public Data get() {
+            return mDataList.get(mCurrentIndex);
+        }
+
+        @Override
+        public Data getRandomExcudingCurrent() {
+            int index = mGenerator.getDistributedRandomNumber();
+            if ( index == mCurrentIndex) {
+                index++;
+                if (index > mDataList.size())
+                    index = 0;
+            }
+            return mDataList.get(index);
+        }
+
+        @Override
+        public Data next() {
+            double distribution = mGenerator.getDistribution( mCurrentIndex );
+            double uses = (distribution - 1) / mMaxUses;
+            mMaxUses++;
+            distribution = (1 - (uses+1) / mMaxUses);
+            mGenerator.addNumber(mCurrentIndex, distribution );
+
+            mCurrentIndex = mGenerator.getDistributedRandomNumber();
+            return mDataList.get(mCurrentIndex);
+        }
+
+        @Override
+        public void setCurrentAnswer(boolean correct) {}
+
+        public class DistributedRandomNumberGenerator {
+
+            private Map<Integer, Double> distribution;
+            private double distSum;
+
+            public DistributedRandomNumberGenerator() {
+                distribution = new HashMap<>();
+            }
+
+            public double getDistribution(int value) {
+                return this.distribution.get(value);
+            }
+
+            public void addNumber(int value, double distribution) {
+                if (this.distribution.get(value) != null) {
+                    distSum -= this.distribution.get(value);
+                }
+                this.distribution.put(value, distribution);
+                distSum += distribution;
+            }
+
+            public int getDistributedRandomNumber() {
+                double rand = Math.random();
+                double ratio = 1.0f / distSum;
+                double tempDist = 0;
+                for (Integer i : distribution.keySet()) {
+                    tempDist += distribution.get(i);
+                    if (rand / ratio <= tempDist) {
+                        return i;
+                    }
+                }
+                return 0;
+            }
+
+        }
+    }
+
     public WordListData.ComplexIterator iterator_sm2() {
         return new SM2Iterator();
     }
-
-    public WordListData.ComplexIterator iterator_random() {
-        return new RandomIterator();
-    }
+    public WordListData.ComplexIterator iterator_random() { return new RandomIterator(); }
+    public WordListData.ComplexIterator iterator_distribution() { return new DistributionIterator(); }
 }

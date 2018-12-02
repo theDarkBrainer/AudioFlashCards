@@ -101,9 +101,9 @@ public class MainActivity extends AppCompatActivity {
             TextView textInfo = convertView.findViewById(R.id.text_info);
             TextView textEnglish = convertView.findViewById(R.id.text_english);
 
-            textGerman.setText(data.mGerman);
-            textInfo.setText(String.format("uses: %d errors: %d", data.mUses, data.mErrors));
-            textEnglish.setText(data.mEnglish);
+            textGerman.setText(data.getGerman());
+            textInfo.setText(String.format("uses: %d errors: %d", data.getUses(), data.getErrors()));
+            textEnglish.setText(data.getEnglish());
 
             return convertView;
         }
@@ -130,8 +130,8 @@ public class MainActivity extends AppCompatActivity {
                 Intent intent = new Intent(MainActivity.this, WordActivity.class);
                 try {
                     intent.putExtra(WordActivity.PARAM_POSITION, position);
-                    intent.putExtra(WordActivity.PARAM_GERMAN, data.mGerman);
-                    intent.putExtra(WordActivity.PARAM_ENGLISH, data.mEnglish);
+                    intent.putExtra(WordActivity.PARAM_GERMAN, data.getGerman());
+                    intent.putExtra(WordActivity.PARAM_ENGLISH, data.getEnglish());
                     startActivityForResult(intent, REC_CODE_EDITWORD);
                 } catch (ActivityNotFoundException a) {
                     Toast.makeText(getApplicationContext(),"Cannot run activity.",Toast.LENGTH_SHORT).show();
@@ -379,8 +379,8 @@ public class MainActivity extends AppCompatActivity {
                     int pos = data.getIntExtra(WordActivity.PARAM_POSITION, -1);
                     if (pos >= 0) {
                         WordListData.Data wordData = mWordListData.getItem(pos);
-                        wordData.mGerman = data.getStringExtra(WordActivity.PARAM_GERMAN);
-                        wordData.mEnglish = data.getStringExtra(WordActivity.PARAM_ENGLISH);
+                        wordData.setGerman( data.getStringExtra(WordActivity.PARAM_GERMAN) );
+                        wordData.setEnglish( data.getStringExtra(WordActivity.PARAM_ENGLISH) );
 
                         if (wordData.isEmpty()) {
                             mWordListData.removeItem( pos );
@@ -394,8 +394,8 @@ public class MainActivity extends AppCompatActivity {
             case REC_CODE_NEWWORD: {
                 if ( data != null ) {
                     WordListData.Data wordData = new WordListData.Data();
-                    wordData.mGerman = data.getStringExtra(WordActivity.PARAM_GERMAN);
-                    wordData.mEnglish = data.getStringExtra(WordActivity.PARAM_ENGLISH);
+                    wordData.setGerman( data.getStringExtra(WordActivity.PARAM_GERMAN) );
+                    wordData.setEnglish( data.getStringExtra(WordActivity.PARAM_ENGLISH) );
 
                     if (!wordData.isEmpty()) {
                         mWordListData.addItem(wordData);

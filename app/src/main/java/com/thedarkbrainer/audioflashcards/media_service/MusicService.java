@@ -99,7 +99,7 @@ public class MusicService extends MediaBrowserServiceCompat {
 
         List<MediaBrowserCompat.MediaItem> arrMediaItems = new ArrayList<>();
 
-        WordListData.ComplexIterator it = mWordListData.iterator_random();
+        WordListData.ComplexIterator it = mWordListData.iterator_distribution();
         for(int i=0; i<100; i++) {
             WordListData.Data data = it.next();
 
@@ -149,6 +149,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             final String mediaId = mPlaylist.get(mQueueIndex).getDescription().getMediaId();
             WordListData.Data data = mWordListData.getItem( mediaId );
 
+            data.increaseUses();
+
             mPreparedMedia = new MediaMetadataCompat.Builder()
                     .putString(MediaMetadataCompat.METADATA_KEY_MEDIA_ID, mediaId)
                     .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, data.getEnglish())
@@ -183,6 +185,8 @@ public class MusicService extends MediaBrowserServiceCompat {
         public void onPause() {
             Log.d(TAG, "MediaSessionCallback: onPause");
             mPlayback.pause();
+
+            mWordListData.save( getApplicationContext() );
         }
 
         @Override
@@ -190,6 +194,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             Log.d(TAG, "MediaSessionCallback: onStop");
             mPlayback.stop();
             mSession.setActive(false);
+
+            mWordListData.save( getApplicationContext() );
         }
 
         @Override
@@ -198,6 +204,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             mQueueIndex = (++mQueueIndex % mPlaylist.size());
             mPreparedMedia = null;
             onPlay();
+
+            mWordListData.save( getApplicationContext() );
         }
 
         @Override
@@ -206,6 +214,8 @@ public class MusicService extends MediaBrowserServiceCompat {
             mQueueIndex = mQueueIndex > 0 ? mQueueIndex - 1 : mPlaylist.size() - 1;
             mPreparedMedia = null;
             onPlay();
+
+            mWordListData.save( getApplicationContext() );
         }
 
         @Override

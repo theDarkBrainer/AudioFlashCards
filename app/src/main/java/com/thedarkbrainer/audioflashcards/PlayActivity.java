@@ -99,9 +99,12 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
+        mWordListData.save(this);
+
         if ( mSpeaker != null )
             mSpeaker.shutdown();
+
+        super.onDestroy();
     }
 
     @Override
@@ -180,9 +183,9 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
         answerButtons.add((Button) findViewById(R.id.btn_answer3));
 
         ArrayList<String> answerTexts = new ArrayList<>();
-        answerTexts.add( mDoGerman ? word.mEnglish : word.mGerman );
-        answerTexts.add( mDoGerman ? mWordsIterator.getRandomExcudingCurrent().mEnglish : mWordsIterator.getRandomExcudingCurrent().mGerman );
-        answerTexts.add( mDoGerman ? mWordsIterator.getRandomExcudingCurrent().mEnglish : mWordsIterator.getRandomExcudingCurrent().mGerman );
+        answerTexts.add( mDoGerman ? word.getEnglish() : word.getGerman() );
+        answerTexts.add( mDoGerman ? mWordsIterator.getRandomExcudingCurrent().getEnglish() : mWordsIterator.getRandomExcudingCurrent().getGerman() );
+        answerTexts.add( mDoGerman ? mWordsIterator.getRandomExcudingCurrent().getEnglish() : mWordsIterator.getRandomExcudingCurrent().getGerman() );
         ArrayList<Integer> answerTags = new ArrayList<>();
         answerTags.add(1);
         answerTags.add(0);
@@ -210,7 +213,7 @@ public class PlayActivity extends AppCompatActivity implements View.OnClickListe
     void reportWord(boolean isOk) {
         mWordsIterator.setCurrentAnswer(isOk);
         if( ! isOk )
-            mWordsIterator.get().mErrors++;
-        mWordsIterator.get().mUses++;
+            mWordsIterator.get().increateErrors();
+        mWordsIterator.get().increaseUses();
     }
 }
