@@ -242,6 +242,8 @@ public class MusicService extends MediaBrowserServiceCompat {
 
             Log.d(TAG, "MediaPlayerListener: onPlaybackStateChange state="+state.getState());
 
+            mWordListData.save( getApplicationContext() );
+
             // Report the state to the MediaSession.
             mSession.setPlaybackState(state);
 
