@@ -336,29 +336,33 @@ public class WordListData implements Serializable  {
 
     public class DistributionIterator implements WordListData.ComplexIterator
     {
-        private DistributedRandomNumberGenerator mGenerator;
+        private Random mRandomGenerator = new Random(System.currentTimeMillis());
         private int mCurrentIndex;
-        private int mMaxUses;
+        private List<Integer> mSortedIndices = new ArrayList<>();
 
         DistributionIterator() {
-            mGenerator = new DistributedRandomNumberGenerator();
             int cnt = mDataList.size();
-            mMaxUses = 0;
             for(int i=0; i<cnt; i++) {
-                Data data = mDataList.get(i);
-                mMaxUses = Math.max(mMaxUses, data.mUses);
+                mSortedIndices.add( i );
             }
 
-            if ( mMaxUses == 0 )
-                mMaxUses = 1;
+            Collections.sort(mSortedIndices, new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    Data data1 = mDataList.get(o1);
+                    Data data2 = mDataList.get(o2);
+                    return data1.mUses == data2.mUses ? 0 : (data1.mUses < data2.mUses ? -1 : 1);
+                }
+            });
 
-            for(int i=0; i<cnt; i++) {
-                Data data = mDataList.get(i);
-                double distribution = (1 - data.mUses / mMaxUses);
-                mGenerator.addNumber(i, distribution );
-            }
+            mCurrentIndex = getNextIndex();
+        }
 
-            mCurrentIndex = mGenerator.getDistributedRandomNumber();
+        private int getNextIndex() {
+            int min = 0;
+            int max = mDataList.size();
+            double result = Math.floor(Math.abs(mRandomGenerator.nextDouble() - mRandomGenerator.nextDouble()) * (1 + max - min) + min);
+            return (int) result;
         }
 
         @Override
@@ -368,7 +372,7 @@ public class WordListData implements Serializable  {
 
         @Override
         public Data getRandomExcudingCurrent() {
-            int index = mGenerator.getDistributedRandomNumber();
+            int index = getNextIndex();
             if ( index == mCurrentIndex) {
                 index++;
                 if (index > mDataList.size())
@@ -379,54 +383,12 @@ public class WordListData implements Serializable  {
 
         @Override
         public Data next() {
-            double distribution = mGenerator.getDistribution( mCurrentIndex );
-            double uses = (distribution - 1) / mMaxUses;
-            mMaxUses++;
-            distribution = (1 - (uses+1) / mMaxUses);
-            mGenerator.addNumber(mCurrentIndex, distribution );
-
-            mCurrentIndex = mGenerator.getDistributedRandomNumber();
+            mCurrentIndex = getNextIndex();
             return mDataList.get(mCurrentIndex);
         }
 
         @Override
         public void setCurrentAnswer(boolean correct) {}
-
-        public class DistributedRandomNumberGenerator {
-
-            private Map<Integer, Double> distribution;
-            private double distSum;
-
-            public DistributedRandomNumberGenerator() {
-                distribution = new HashMap<>();
-            }
-
-            public double getDistribution(int value) {
-                return this.distribution.get(value);
-            }
-
-            public void addNumber(int value, double distribution) {
-                if (this.distribution.get(value) != null) {
-                    distSum -= this.distribution.get(value);
-                }
-                this.distribution.put(value, distribution);
-                distSum += distribution;
-            }
-
-            public int getDistributedRandomNumber() {
-                double rand = Math.random();
-                double ratio = 1.0f / distSum;
-                double tempDist = 0;
-                for (Integer i : distribution.keySet()) {
-                    tempDist += distribution.get(i);
-                    if (rand / ratio <= tempDist) {
-                        return i;
-                    }
-                }
-                return 0;
-            }
-
-        }
     }
 
     public WordListData.ComplexIterator iterator_sm2() {
