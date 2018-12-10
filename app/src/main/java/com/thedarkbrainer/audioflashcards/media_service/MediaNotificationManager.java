@@ -151,8 +151,7 @@ public class MediaNotificationManager {
                 //.setLargeIcon(MusicLibrary.getAlbumBitmap(mService, description.getMediaId()))
                 // When notification is deleted (when playback is paused and notification can be
                 // deleted) fire MediaButtonPendingIntent with ACTION_STOP.
-                .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(
-                        mService, PlaybackStateCompat.ACTION_STOP))
+                .setDeleteIntent(MediaButtonReceiver.buildMediaButtonPendingIntent(mService, PlaybackStateCompat.ACTION_STOP))
                 // Show controls on lock screen even when user hides sensitive content.
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC);
 
@@ -174,27 +173,21 @@ public class MediaNotificationManager {
     // Does nothing on versions of Android earlier than O.
     @RequiresApi(Build.VERSION_CODES.O)
     private void createChannel() {
-        if (mNotificationManager.getNotificationChannel(CHANNEL_ID) == null) {
-            // The user-visible name of the channel.
-            CharSequence name = "MediaSession";
-            // The user-visible description of the channel.
-            String description = "MediaSession and MediaPlayer";
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
-            // Configure the notification channel.
-            mChannel.setDescription(description);
-            mChannel.enableLights(true);
-            // Sets the notification light color for notifications posted to this
-            // channel, if the device supports this feature.
-            mChannel.setLightColor(Color.RED);
-            mChannel.enableVibration(true);
-            mChannel.setVibrationPattern(
-                    new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
-            mNotificationManager.createNotificationChannel(mChannel);
-            Log.d(TAG, "createChannel: New channel created");
-        } else {
-            Log.d(TAG, "createChannel: Existing channel reused");
-        }
+        // The user-visible name of the channel.
+        CharSequence name = "MediaSession";
+        // The user-visible description of the channel.
+        String description = "MediaSession and MediaPlayer";
+        int importance = NotificationManager.IMPORTANCE_LOW;
+        NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
+        // Configure the notification channel.
+        mChannel.setDescription(description);
+        mChannel.enableLights(true);
+        // Sets the notification light color for notifications posted to this
+        // channel, if the device supports this feature.
+        mChannel.setLightColor(Color.RED);
+        mChannel.enableVibration(false);
+        mChannel.setSound(null, null);
+        mNotificationManager.createNotificationChannel(mChannel);
     }
 
     private boolean isAndroidOOrHigher() {
