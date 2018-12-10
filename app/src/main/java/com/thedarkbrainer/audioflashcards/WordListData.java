@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Serializable;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -338,7 +339,7 @@ public class WordListData implements Serializable  {
     {
         private Random mRandomGenerator = new Random(System.currentTimeMillis());
         private int mCurrentIndex;
-        private List<Integer> mSortedIndices = new ArrayList<>();
+        private ArrayList<Integer> mSortedIndices = new ArrayList<Integer>();
 
         DistributionIterator() {
             int cnt = mDataList.size();
@@ -359,10 +360,11 @@ public class WordListData implements Serializable  {
         }
 
         private int getNextIndex() {
+            // https://gamedev.stackexchange.com/questions/116832/random-number-in-a-range-biased-toward-the-low-end-of-the-range
             int min = 0;
-            int max = mDataList.size();
-            double result = Math.floor(Math.abs(mRandomGenerator.nextDouble() - mRandomGenerator.nextDouble()) * (1 + max - min) + min);
-            return (int) result;
+            int max = mDataList.size() - 1;
+            double result = Math.floor(Math.abs(mRandomGenerator.nextDouble() - mRandomGenerator.nextDouble()) * (max - min) + min);
+            return mSortedIndices.get( (int) result );
         }
 
         @Override
